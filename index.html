@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplicación TODO</title>
+</head>
+<body>
+  <h1>Lista de Tareas</h1>
+  <ul id="todo-list"></ul>
+
+  <h3>Agregar una Nueva Tarea</h3>
+  <input type="text" id="new-task" placeholder="Nueva tarea" />
+  <button onclick="addTodo()">Agregar Tarea</button>
+
+  <script>
+    const apiURL = 'http://localhost:3000/todos';
+
+    // Función para obtener todas las tareas
+    async function fetchTodos() {
+      try {
+        const response = await fetch(apiURL);
+        const todos = await response.json();
+        const todoList = document.getElementById('todo-list');
+        todoList.innerHTML = '';
+
+        todos.forEach(todo => {
+          const li = document.createElement('li');
+          li.textContent = todo.task;
+
+          // Botón de Modificar
+          const editButton = document.createElement('button');
+          editButton.textContent = 'Modificar';
+          editButton.onclick = () => editTodo(todo.id, todo.task);
+
+          // Botón de Eliminar
+          const deleteButton = document.createElement('button');
+          deleteButton.textContent = 'Eliminar';
+          deleteButton.onclick = () => deleteTodo(todo.id);
+
+          // Añadir botones al li
+          li.appendChild(editButton);
+          li.appendChild(deleteButton);
+          todoList.appendChild(li);
+        });
+      } catch (error) {
+        console.error("Error fetching todos:", error);
+      }
+    }
+
+    // Función para agregar una nueva tarea
+    async function addTodo() {
+      const newTask = document.getElementById('new-task').value;
+      
+      // Verificar que el campo de entrada no esté vacío
+      if (!newTask.trim()) {
+        alert("Por favor, ingresa una tarea.");
+        return;
+      }
+
+      try {
+        const response = await fetch(apiURL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ task: newTask })
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al agregar la tarea");
+        }
+
+        // Limpiar el campo de entrada
+        document.getElementById('new-task').value = '';
+
+        // Actualizar la lista de tareas
+        fetchTodos();
+
+      } catch (error) {
+        console.error("Error adding todo:", error);
+      }
+    }
+
+    // Función para editar una tarea
+    function editTodo(id, oldTask) {
+      const newTask = prompt("Modificar tarea:", oldTask);
+      if (newTask && newTask.trim()) {
+        updateTodoInAPI(id, newTask);
+      }
+    }
+
+    async function updateTodoInAPI(id, newTask) {
+      try {
+        const response = await fetch(`${apiURL}/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id, task: newTask, completed: false }) // Puedes añadir o modificar el campo completed si es necesario
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al actualizar la tarea");
+        }
+
+        // Actualizar la lista de tareas
+        fetchTodos();
+
+      } catch (error) {
+        console.error("Error updating todo:", error);
+      }
+    }
+
+    // Función para eliminar una tarea
+    async function deleteTodo(id) {
+      try {
+        const response = await fetch(`${apiURL}/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al eliminar la tarea");
+        }
+
+        // Actualizar la lista de tareas
+        fetchTodos();
+
+      } catch (error) {
+        console.error("Error deleting todo:", error);
+      }
+    }
+
+    // Cargar la lista de tareas cuando la página cargue
+    window.onload = fetchTodos;
+  </script>
+</body>
+</html>
